@@ -393,7 +393,6 @@ function renderMatchRow(m, nameMap) {
   const homeLogo = teamLogoImg(m.home, "results-logo", 24);
   const awayLogo = teamLogoImg(m.away, "results-logo", 24);
   return `<tr>
-    <td>${escapeHtml(String(m.round ?? "—"))}</td>
     <td class="results-match"><span class="results-pair"><span class="results-side results-side--home">${homeLogo}<span class="results-name">${escapeHtml(hn)}</span></span><span class="results-vs">–</span><span class="results-side results-side--away"><span class="results-name">${escapeHtml(an)}</span>${awayLogo}</span></span></td>
     <td class="results-score"><strong>${m.homeScore}</strong> – <strong>${m.awayScore}</strong></td>
   </tr>`;
@@ -421,7 +420,6 @@ function renderRecentResults(container, matches, nameMap, { live } = { live: fal
   const groups = groupPlayedMatchesByDate(top);
 
   const thead = `<thead><tr>
-    <th scope="col">Ronde</th>
     <th scope="col">Wedstrijd</th>
     <th scope="col">Uitslag</th>
   </tr></thead>`;

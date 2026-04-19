@@ -288,7 +288,7 @@ header {
 }
 .results-table {
   width: 100%;
-  min-width: 400px;
+  min-width: 280px;
   border-collapse: collapse;
   font-size: 0.875rem;
 }
@@ -308,10 +308,12 @@ header {
   background: rgba(30, 64, 88, 0.06);
 }
 .results-table th:first-child {
-  width: 14%;
-}
-.results-table th:nth-child(2) {
   width: auto;
+}
+.results-table th:last-child {
+  width: 1%;
+  text-align: center;
+  white-space: nowrap;
 }
 .results-match {
   font-weight: 600;
