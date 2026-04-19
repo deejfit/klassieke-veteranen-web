@@ -157,6 +157,80 @@ header {
 .store-btn:active { transform: translateY(0); }
 .store-btn svg { flex-shrink: 0; opacity: 0.95; }
 
+.standings-section .section-title {
+  margin-bottom: 1rem;
+}
+.standings-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1rem;
+  transition: box-shadow 0.2s ease;
+}
+.standings-card:hover {
+  box-shadow: 0 10px 30px rgba(20, 42, 61, 0.06);
+}
+.standings-loading,
+.standings-note,
+.standings-error {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.standings-note {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.9rem;
+  background: rgba(30, 64, 88, 0.06);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(30, 64, 88, 0.1);
+}
+.standings-error {
+  color: #8b2942;
+}
+.standings-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -0.25rem;
+  padding: 0 0.25rem;
+}
+.standings-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.standings-table th,
+.standings-table td {
+  padding: 0.55rem 0.45rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.standings-table th {
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  background: rgba(30, 64, 88, 0.06);
+}
+.standings-table th:first-child,
+.standings-table td:first-child {
+  width: 2.25rem;
+}
+.standings-table .standings-team {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 8.5rem;
+}
+.standings-table tbody tr:hover {
+  background: rgba(30, 64, 88, 0.04);
+}
+.standings-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 section {
   padding: clamp(2rem, 5vw, 3rem) 0;
 }

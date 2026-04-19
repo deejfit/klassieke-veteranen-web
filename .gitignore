@@ -1,1 +1,6 @@
 .DS_Store
+
+# Lokale Flutter-app (aparte repo / werkmap)
+klassieke_veteranen/
+
+/klassieke_veteranen
