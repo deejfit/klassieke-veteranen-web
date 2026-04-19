@@ -1,6 +1,37 @@
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import {
+  getAuth,
+  signInAnonymously,
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+/**
+ * Zelfde Firebase Web-config als `klassieke_veteranen/lib/firebase_options.dart` (web).
+ * Firestore-paden gelijk aan `FirestoreService`: `competitions/{competitionId}/teams|matches`.
+ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD26WDV_NcLOzVd5Zg2CUMP7vN6smygpPo",
+  authDomain: "competitions-86b37.firebaseapp.com",
+  projectId: "competitions-86b37",
+  storageBucket: "competitions-86b37.firebasestorage.app",
+  messagingSenderId: "752716670867",
+  appId: "1:752716670867:web:4e946ee498606aa998aa66",
+};
+
+const COMPETITION_ID = "klassieke-veteranen";
+
 const MATCH_STATUS_NOT_STARTED = "not_started";
 
-/** Pad naar JSON naast index.html; werkt op GitHub Pages ook als de URL geen afsluitende / heeft. */
+function getFirebaseApp() {
+  if (!getApps().length) return initializeApp(FIREBASE_CONFIG);
+  return getApp();
+}
+
+/** Pad naar JSON-fallback (GitHub Pages met/zonder slash). */
 function standingsDataUrl() {
   const target = "assets/standings-data.json";
   if (location.protocol === "https:" || location.protocol === "http:") {
@@ -28,6 +59,102 @@ function standingsDataUrl() {
   } catch {
     return target;
   }
+}
+
+function matchTimeMs(match) {
+  const t = match.startTime;
+  if (t && typeof t.toMillis === "function") return t.toMillis();
+  if (t && typeof t.seconds === "number") return t.seconds * 1000;
+  if (typeof match.startTime === "string") {
+    const p = Date.parse(match.startTime);
+    return Number.isFinite(p) ? p : 0;
+  }
+  return 0;
+}
+
+function normalizeMatch(m) {
+  const homeScore =
+    m.homeScore === undefined || m.homeScore === null
+      ? null
+      : Number(m.homeScore);
+  const awayScore =
+    m.awayScore === undefined || m.awayScore === null
+      ? null
+      : Number(m.awayScore);
+  return {
+    id: m.id,
+    round: m.round ?? "",
+    home: m.home ?? "",
+    away: m.away ?? "",
+    date: m.date ?? "",
+    startTime: m.startTime,
+    homeScore: Number.isFinite(homeScore) ? homeScore : null,
+    awayScore: Number.isFinite(awayScore) ? awayScore : null,
+    status: m.status ?? "not_started",
+    startTimeMs: matchTimeMs(m),
+  };
+}
+
+async function loadFromFirestore() {
+  const app = getFirebaseApp();
+  const db = getFirestore(app);
+
+  async function readCollections() {
+    const comp = COMPETITION_ID;
+    const teamSnap = await getDocs(collection(db, "competitions", comp, "teams"));
+    const teams = [];
+    teamSnap.forEach((doc) => {
+      const d = doc.data();
+      teams.push({
+        id: d.id ?? doc.id,
+        name: d.name ?? d.id ?? doc.id,
+      });
+    });
+
+    const matchSnap = await getDocs(collection(db, "competitions", comp, "matches"));
+    const matches = [];
+    matchSnap.forEach((doc) => {
+      const d = doc.data();
+      matches.push(
+        normalizeMatch({
+          id: d.id ?? doc.id,
+          round: d.round,
+          home: d.home,
+          away: d.away,
+          date: d.date,
+          startTime: d.startTime,
+          homeScore: d.homeScore,
+          awayScore: d.awayScore,
+          status: d.status,
+        }),
+      );
+    });
+    return { teams, matches };
+  }
+
+  try {
+    return await readCollections();
+  } catch (e) {
+    if (e?.code === "permission-denied") {
+      try {
+        const auth = getAuth(app);
+        await signInAnonymously(auth);
+        return await readCollections();
+      } catch {
+        throw e;
+      }
+    }
+    throw e;
+  }
+}
+
+async function loadFromJsonFallback() {
+  const res = await fetch(standingsDataUrl(), { cache: "no-store" });
+  if (!res.ok) throw new Error(String(res.status));
+  const data = await res.json();
+  const teams = (data.teams || []).map((t) => ({ ...t }));
+  const matches = (data.matches || []).map((m) => normalizeMatch(m));
+  return { teams, matches };
 }
 
 function isPlaceholderFiveNil(homeScore, awayScore) {
@@ -144,11 +271,14 @@ function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, (ch) => map[ch] || ch);
 }
 
-function renderStandings(container, rows) {
+function renderStandings(container, rows, { live } = { live: false }) {
   const playedAny = rows.some((r) => r.played > 0);
-  const note = !playedAny
-    ? '<p class="standings-note">Nog geen uitslagen in de geëxporteerde data — zodra wedstrijden zijn gespeeld, verschijnt hier de stand. Voor de live stand: open de app.</p>'
-    : "";
+  let note = "";
+  if (!playedAny) {
+    note = live
+      ? '<p class="standings-note">Nog geen wedstrijden met een ingevulde uitslag in Firestore. Zodra er uitslagen zijn, verschijnt hier de stand.</p>'
+      : '<p class="standings-note">Nog geen uitslagen in de lokale data — zodra wedstrijden zijn gespeeld, verschijnt hier de stand. Voor de live stand: open de app.</p>';
+  }
 
   const thead = `<thead><tr>
     <th scope="col">#</th>
@@ -183,28 +313,111 @@ function renderStandings(container, rows) {
     })
     .join("");
 
-  container.innerHTML = `${note}<div class="standings-scroll"><table class="standings-table">${thead}<tbody>${bodyRows}</tbody></table></div>`;
+  const liveHint = live
+    ? '<p class="standings-live-hint">Live uit Firestore</p>'
+    : "";
+
+  container.innerHTML = `${liveHint}${note}<div class="standings-scroll"><table class="standings-table">${thead}<tbody>${bodyRows}</tbody></table></div>`;
 }
 
-async function loadStandings() {
-  const container = document.getElementById("standings-root");
-  if (!container) return;
+function buildTeamNameMap(teams) {
+  const map = { vrij: "Vrij" };
+  for (const t of teams) map[t.id] = t.name;
+  return map;
+}
+
+function formatNlDate(ms) {
+  if (!ms) return "—";
+  return new Date(ms).toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function renderRecentResults(container, matches, nameMap, { live } = { live: false }) {
+  const played = matches.filter(
+    (m) =>
+      m.homeScore != null &&
+      m.awayScore != null &&
+      !(m.home === "vrij" && m.away === "vrij"),
+  );
+  played.sort((a, b) => (b.startTimeMs || 0) - (a.startTimeMs || 0));
+  const top = played.slice(0, 25);
+
+  if (!top.length) {
+    container.innerHTML = `<p class="results-empty">Nog geen uitslagen om te tonen.</p>${
+      live
+        ? ""
+        : '<p class="results-empty results-empty--sub">Tip: als Firestore-leesrechten ontbreken, wordt lokale JSON gebruikt.</p>'
+    }`;
+    return;
+  }
+
+  const thead = `<thead><tr>
+    <th scope="col">Datum</th>
+    <th scope="col">Ronde</th>
+    <th scope="col">Wedstrijd</th>
+    <th scope="col">Uitslag</th>
+  </tr></thead>`;
+
+  const rows = top
+    .map((m) => {
+      const hn = nameMap[m.home] || m.home;
+      const an = nameMap[m.away] || m.away;
+      return `<tr>
+      <td>${escapeHtml(formatNlDate(m.startTimeMs))}</td>
+      <td>${escapeHtml(String(m.round ?? "—"))}</td>
+      <td class="results-match">${escapeHtml(hn)} <span class="results-vs">–</span> ${escapeHtml(an)}</td>
+      <td class="results-score"><strong>${m.homeScore}</strong> – <strong>${m.awayScore}</strong></td>
+    </tr>`;
+    })
+    .join("");
+
+  const hint = live
+    ? '<p class="results-live-hint">Laatste uitslagen uit Firestore</p>'
+    : "";
+
+  container.innerHTML = `${hint}<div class="results-scroll"><table class="results-table">${thead}<tbody>${rows}</tbody></table></div>`;
+}
+
+async function loadCompetition() {
+  const standingsRoot = document.getElementById("standings-root");
+  const resultsRoot = document.getElementById("results-root");
+  if (!standingsRoot) return;
+
+  let teams = [];
+  let matches = [];
+  let live = false;
 
   try {
-    const res = await fetch(standingsDataUrl(), { cache: "no-store" });
-    if (!res.ok) throw new Error(String(res.status));
-    const data = await res.json();
-    let teams = data.teams || [];
-    const matches = data.matches || [];
-    teams = teams.filter((t) => t.id !== "vrij");
-    const rows = calculateStandings(teams, matches);
-    renderStandings(container, rows);
-  } catch {
-    container.innerHTML =
-      '<p class="standings-error">Kon de stand niet laden. Vernieuw de pagina of bekijk de stand in de app.</p>';
+    ({ teams, matches } = await loadFromFirestore());
+    live = true;
+  } catch (err) {
+    console.warn("Firestore niet beschikbaar, fallback op standings-data.json", err);
+    try {
+      ({ teams, matches } = await loadFromJsonFallback());
+    } catch {
+      standingsRoot.innerHTML =
+        '<p class="standings-error">Kon geen data laden (Firestore en lokale JSON mislukten). Controleer Firestore-regels en of <code>assets/standings-data.json</code> bestaat.</p>';
+      if (resultsRoot) {
+        resultsRoot.innerHTML =
+          '<p class="standings-error">Kon uitslagen niet laden.</p>';
+      }
+      return;
+    }
+  }
+
+  const teamsStandings = teams.filter((t) => t.id !== "vrij");
+  const rows = calculateStandings(teamsStandings, matches);
+  renderStandings(standingsRoot, rows, { live });
+
+  if (resultsRoot) {
+    const nameMap = buildTeamNameMap(teams);
+    renderRecentResults(resultsRoot, matches, nameMap, { live });
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  loadStandings();
+  loadCompetition();
 });
