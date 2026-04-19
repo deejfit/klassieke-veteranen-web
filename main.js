@@ -398,6 +398,9 @@ function renderMatchRow(m, nameMap) {
   </tr>`;
 }
 
+/** Aantal recente speeldagen (weekenden) in het blok Laatste uitslagen. */
+const RECENT_RESULTS_DAY_GROUPS = 4;
+
 function renderRecentResults(container, matches, nameMap, { live } = { live: false }) {
   const played = matches.filter(
     (m) =>
@@ -406,9 +409,8 @@ function renderRecentResults(container, matches, nameMap, { live } = { live: fal
       !(m.home === "vrij" && m.away === "vrij"),
   );
   played.sort((a, b) => (b.startTimeMs || 0) - (a.startTimeMs || 0));
-  const top = played.slice(0, 48);
 
-  if (!top.length) {
+  if (!played.length) {
     container.innerHTML = `<p class="results-empty">Nog geen uitslagen om te tonen.</p>${
       live
         ? ""
@@ -417,7 +419,7 @@ function renderRecentResults(container, matches, nameMap, { live } = { live: fal
     return;
   }
 
-  const groups = groupPlayedMatchesByDate(top);
+  const groups = groupPlayedMatchesByDate(played).slice(0, RECENT_RESULTS_DAY_GROUPS);
 
   const thead = `<thead><tr>
     <th scope="col">Wedstrijd</th>
