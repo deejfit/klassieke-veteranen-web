@@ -300,7 +300,7 @@ function renderStandings(container, rows, { live } = { live: false }) {
   if (!playedAny) {
     note = live
       ? '<p class="standings-note">Nog geen wedstrijden met een ingevulde uitslag in Firestore. Zodra er uitslagen zijn, verschijnt hier de stand.</p>'
-      : '<p class="standings-note">Nog geen uitslagen in de lokale data — zodra wedstrijden zijn gespeeld, verschijnt hier de stand. Voor de live stand: open de app.</p>';
+      : '<p class="standings-note">Nog geen uitslagen in de lokale data. Zodra wedstrijden zijn gespeeld, verschijnt hier de stand. Voor de live stand: open de app.</p>';
   }
 
   const thead = `<thead><tr>
