@@ -1,5 +1,35 @@
 const MATCH_STATUS_NOT_STARTED = "not_started";
 
+/** Pad naar JSON naast index.html; werkt op GitHub Pages ook als de URL geen afsluitende / heeft. */
+function standingsDataUrl() {
+  const target = "assets/standings-data.json";
+  if (location.protocol === "https:" || location.protocol === "http:") {
+    let path = location.pathname.replace(/\/index\.html?$/i, "");
+    if (path !== "/" && !path.endsWith("/")) path += "/";
+    const base = location.origin + path;
+    try {
+      return new URL(target, base).href;
+    } catch {
+      /* fallthrough */
+    }
+  }
+  const link =
+    document.querySelector('link[rel="stylesheet"][href$="styles.css"]') ||
+    document.querySelector('link[rel="stylesheet"]');
+  if (link?.href) {
+    try {
+      return new URL(target, link.href).href;
+    } catch {
+      /* fallthrough */
+    }
+  }
+  try {
+    return new URL(target, window.location.href).href;
+  } catch {
+    return target;
+  }
+}
+
 function isPlaceholderFiveNil(homeScore, awayScore) {
   return (
     (homeScore === 5 && awayScore === 0) || (homeScore === 0 && awayScore === 5)
@@ -161,7 +191,7 @@ async function loadStandings() {
   if (!container) return;
 
   try {
-    const res = await fetch("assets/standings-data.json", { cache: "no-store" });
+    const res = await fetch(standingsDataUrl(), { cache: "no-store" });
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
     let teams = data.teams || [];
