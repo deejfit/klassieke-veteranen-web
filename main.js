@@ -386,7 +386,7 @@ function renderRecentResults(container, matches, nameMap, { live } = { live: fal
       return `<tr>
       <td>${escapeHtml(formatNlDate(m.startTimeMs))}</td>
       <td>${escapeHtml(String(m.round ?? "—"))}</td>
-      <td class="results-match"><span class="results-pair"><span class="results-side">${homeLogo}<span class="results-name">${escapeHtml(hn)}</span></span><span class="results-vs">–</span><span class="results-side">${awayLogo}<span class="results-name">${escapeHtml(an)}</span></span></span></td>
+      <td class="results-match"><span class="results-pair"><span class="results-side results-side--home">${homeLogo}<span class="results-name">${escapeHtml(hn)}</span></span><span class="results-vs">–</span><span class="results-side results-side--away"><span class="results-name">${escapeHtml(an)}</span>${awayLogo}</span></span></td>
       <td class="results-score"><strong>${m.homeScore}</strong> – <strong>${m.awayScore}</strong></td>
     </tr>`;
     })
