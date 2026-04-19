@@ -247,15 +247,6 @@ header {
   border-bottom: none;
 }
 
-.standings-live-hint,
-.results-live-hint {
-  margin: 0 0 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: 0.02em;
-}
-
 .results-section .section-title {
   margin-bottom: 1rem;
 }

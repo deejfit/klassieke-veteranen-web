@@ -333,11 +333,7 @@ function renderStandings(container, rows, { live } = { live: false }) {
     })
     .join("");
 
-  const liveHint = live
-    ? '<p class="standings-live-hint">Live uit Firestore</p>'
-    : "";
-
-  container.innerHTML = `${liveHint}${note}<div class="standings-scroll"><table class="standings-table">${thead}<tbody>${bodyRows}</tbody></table></div>`;
+  container.innerHTML = `${note}<div class="standings-scroll"><table class="standings-table">${thead}<tbody>${bodyRows}</tbody></table></div>`;
 }
 
 function buildTeamNameMap(teams) {
@@ -396,11 +392,7 @@ function renderRecentResults(container, matches, nameMap, { live } = { live: fal
     })
     .join("");
 
-  const hint = live
-    ? '<p class="results-live-hint">Laatste uitslagen uit Firestore</p>'
-    : "";
-
-  container.innerHTML = `${hint}<div class="results-scroll"><table class="results-table">${thead}<tbody>${rows}</tbody></table></div>`;
+  container.innerHTML = `<div class="results-scroll"><table class="results-table">${thead}<tbody>${rows}</tbody></table></div>`;
 }
 
 async function loadCompetition() {
