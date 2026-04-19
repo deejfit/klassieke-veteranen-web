@@ -260,6 +260,26 @@ header {
 .results-card:hover {
   box-shadow: 0 10px 30px rgba(20, 42, 61, 0.06);
 }
+.results-by-date {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.results-day {
+  margin: 0;
+}
+.results-day + .results-day {
+  margin-top: 1.35rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.results-day-title {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
 .results-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -268,7 +288,7 @@ header {
 }
 .results-table {
   width: 100%;
-  min-width: 480px;
+  min-width: 400px;
   border-collapse: collapse;
   font-size: 0.875rem;
 }
@@ -288,10 +308,10 @@ header {
   background: rgba(30, 64, 88, 0.06);
 }
 .results-table th:first-child {
-  width: 28%;
+  width: 14%;
 }
 .results-table th:nth-child(2) {
-  width: 12%;
+  width: auto;
 }
 .results-match {
   font-weight: 600;

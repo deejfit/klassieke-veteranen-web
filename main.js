@@ -342,13 +342,61 @@ function buildTeamNameMap(teams) {
   return map;
 }
 
-function formatNlDate(ms) {
-  if (!ms) return "—";
+/** Kalenderdag in lokale tijd (YYYY-MM-DD) voor groeperen. */
+function localDateKey(ms) {
+  if (!ms) return "";
+  const d = new Date(ms);
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  return `${y}-${mo}-${da}`;
+}
+
+/** Titel boven een datumsectie (bijv. "zaterdag 12 april 2026"). */
+function formatNlDateSectionTitle(ms) {
+  if (!ms) return "Onbekende datum";
   return new Date(ms).toLocaleDateString("nl-NL", {
+    weekday: "long",
     day: "numeric",
-    month: "short",
+    month: "long",
     year: "numeric",
   });
+}
+
+/** Groepeert op kalenderdag, nieuwste dagen eerst; binnen een dag nieuwste wedstrijd eerst. */
+function groupPlayedMatchesByDate(matches) {
+  const map = new Map();
+  for (const m of matches) {
+    const k = localDateKey(m.startTimeMs) || "unknown";
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(m);
+  }
+  for (const arr of map.values()) {
+    arr.sort((a, b) => (b.startTimeMs || 0) - (a.startTimeMs || 0));
+  }
+  const keys = [...map.keys()].filter((k) => k !== "unknown").sort().reverse();
+  const out = keys.map((key) => ({ key, matches: map.get(key) }));
+  const unknown = map.get("unknown");
+  if (unknown?.length) {
+    out.push({ key: "unknown", matches: unknown });
+  }
+  for (const g of out) {
+    const ms0 = g.matches[0]?.startTimeMs;
+    g.title = ms0 ? formatNlDateSectionTitle(ms0) : "Onbekende datum";
+  }
+  return out;
+}
+
+function renderMatchRow(m, nameMap) {
+  const hn = nameMap[m.home] || m.home;
+  const an = nameMap[m.away] || m.away;
+  const homeLogo = teamLogoImg(m.home, "results-logo", 24);
+  const awayLogo = teamLogoImg(m.away, "results-logo", 24);
+  return `<tr>
+    <td>${escapeHtml(String(m.round ?? "—"))}</td>
+    <td class="results-match"><span class="results-pair"><span class="results-side results-side--home">${homeLogo}<span class="results-name">${escapeHtml(hn)}</span></span><span class="results-vs">–</span><span class="results-side results-side--away"><span class="results-name">${escapeHtml(an)}</span>${awayLogo}</span></span></td>
+    <td class="results-score"><strong>${m.homeScore}</strong> – <strong>${m.awayScore}</strong></td>
+  </tr>`;
 }
 
 function renderRecentResults(container, matches, nameMap, { live } = { live: false }) {
@@ -359,7 +407,7 @@ function renderRecentResults(container, matches, nameMap, { live } = { live: fal
       !(m.home === "vrij" && m.away === "vrij"),
   );
   played.sort((a, b) => (b.startTimeMs || 0) - (a.startTimeMs || 0));
-  const top = played.slice(0, 25);
+  const top = played.slice(0, 48);
 
   if (!top.length) {
     container.innerHTML = `<p class="results-empty">Nog geen uitslagen om te tonen.</p>${
@@ -370,29 +418,28 @@ function renderRecentResults(container, matches, nameMap, { live } = { live: fal
     return;
   }
 
+  const groups = groupPlayedMatchesByDate(top);
+
   const thead = `<thead><tr>
-    <th scope="col">Datum</th>
     <th scope="col">Ronde</th>
     <th scope="col">Wedstrijd</th>
     <th scope="col">Uitslag</th>
   </tr></thead>`;
 
-  const rows = top
-    .map((m) => {
-      const hn = nameMap[m.home] || m.home;
-      const an = nameMap[m.away] || m.away;
-      const homeLogo = teamLogoImg(m.home, "results-logo", 24);
-      const awayLogo = teamLogoImg(m.away, "results-logo", 24);
-      return `<tr>
-      <td>${escapeHtml(formatNlDate(m.startTimeMs))}</td>
-      <td>${escapeHtml(String(m.round ?? "—"))}</td>
-      <td class="results-match"><span class="results-pair"><span class="results-side results-side--home">${homeLogo}<span class="results-name">${escapeHtml(hn)}</span></span><span class="results-vs">–</span><span class="results-side results-side--away"><span class="results-name">${escapeHtml(an)}</span>${awayLogo}</span></span></td>
-      <td class="results-score"><strong>${m.homeScore}</strong> – <strong>${m.awayScore}</strong></td>
-    </tr>`;
+  const sections = groups
+    .map((g, idx) => {
+      const id = `results-day-${g.key.replace(/[^0-9a-z-]/gi, "")}-${idx}`;
+      const rows = g.matches.map((m) => renderMatchRow(m, nameMap)).join("");
+      return `<section class="results-day" aria-labelledby="${id}">
+    <h3 class="results-day-title" id="${id}">${escapeHtml(g.title)}</h3>
+    <div class="results-scroll">
+      <table class="results-table">${thead}<tbody>${rows}</tbody></table>
+    </div>
+  </section>`;
     })
     .join("");
 
-  container.innerHTML = `<div class="results-scroll"><table class="results-table">${thead}<tbody>${rows}</tbody></table></div>`;
+  container.innerHTML = `<div class="results-by-date">${sections}</div>`;
 }
 
 async function loadCompetition() {
