@@ -31,34 +31,57 @@ function getFirebaseApp() {
   return getApp();
 }
 
-/** Pad naar JSON-fallback (GitHub Pages met/zonder slash). */
-function standingsDataUrl() {
-  const target = "assets/standings-data.json";
+/** Basis-URL van de site (eindigt op `/`), o.a. voor GitHub Pages zonder trailing slash. */
+function siteBaseDir() {
   if (location.protocol === "https:" || location.protocol === "http:") {
     let path = location.pathname.replace(/\/index\.html?$/i, "");
     if (path !== "/" && !path.endsWith("/")) path += "/";
-    const base = location.origin + path;
-    try {
-      return new URL(target, base).href;
-    } catch {
-      /* fallthrough */
-    }
+    return location.origin + path;
   }
   const link =
     document.querySelector('link[rel="stylesheet"][href$="styles.css"]') ||
     document.querySelector('link[rel="stylesheet"]');
   if (link?.href) {
     try {
-      return new URL(target, link.href).href;
+      return new URL(".", link.href).href;
     } catch {
       /* fallthrough */
     }
   }
   try {
-    return new URL(target, window.location.href).href;
+    return new URL(".", window.location.href).href;
   } catch {
-    return target;
+    return "";
   }
+}
+
+function assetHref(relativePath) {
+  const base = siteBaseDir();
+  if (!base) return relativePath;
+  try {
+    return new URL(relativePath.replace(/^\//, ""), base).href;
+  } catch {
+    return relativePath;
+  }
+}
+
+function standingsDataUrl() {
+  return assetHref("assets/standings-data.json");
+}
+
+let _placeholderLogoHref;
+function teamLogoPlaceholderHref() {
+  if (!_placeholderLogoHref) {
+    _placeholderLogoHref = assetHref("assets/teams/placeholder.png");
+  }
+  return _placeholderLogoHref;
+}
+
+/** Clublogo: zelfde bestandsnamen als in de Flutter-app (`assets/images/teams/{id}.png`). */
+function teamLogoImg(teamId, className, size = 28) {
+  const src = assetHref(`assets/teams/${encodeURIComponent(teamId)}.png`);
+  const ph = teamLogoPlaceholderHref().replace(/'/g, "\\'");
+  return `<img class="${className}" src="${src}" width="${size}" height="${size}" alt="" loading="lazy" decoding="async" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src='${ph}'}">`;
 }
 
 function matchTimeMs(match) {
@@ -287,8 +310,6 @@ function renderStandings(container, rows, { live } = { live: false }) {
     <th scope="col">W</th>
     <th scope="col">G</th>
     <th scope="col">V</th>
-    <th scope="col">DV</th>
-    <th scope="col">DT</th>
     <th scope="col">+/-</th>
     <th scope="col">Ptn</th>
   </tr></thead>`;
@@ -298,15 +319,14 @@ function renderStandings(container, rows, { live } = { live: false }) {
       const sign = r.goalDifference > 0 ? "+" : "";
       const gd =
         r.goalDifference === 0 ? "0" : `${sign}${r.goalDifference}`;
+      const logo = teamLogoImg(r.teamId, "standings-logo");
       return `<tr>
       <td>${i + 1}</td>
-      <td class="standings-team">${escapeHtml(r.teamName)}</td>
+      <td class="standings-team"><span class="standings-team-inner">${logo}<span class="standings-team-name">${escapeHtml(r.teamName)}</span></span></td>
       <td>${r.played}</td>
       <td>${r.wins}</td>
       <td>${r.draws}</td>
       <td>${r.losses}</td>
-      <td>${r.goalsFor}</td>
-      <td>${r.goalsAgainst}</td>
       <td>${gd}</td>
       <td><strong>${r.points}</strong></td>
     </tr>`;
@@ -365,10 +385,12 @@ function renderRecentResults(container, matches, nameMap, { live } = { live: fal
     .map((m) => {
       const hn = nameMap[m.home] || m.home;
       const an = nameMap[m.away] || m.away;
+      const homeLogo = teamLogoImg(m.home, "results-logo", 24);
+      const awayLogo = teamLogoImg(m.away, "results-logo", 24);
       return `<tr>
       <td>${escapeHtml(formatNlDate(m.startTimeMs))}</td>
       <td>${escapeHtml(String(m.round ?? "—"))}</td>
-      <td class="results-match">${escapeHtml(hn)} <span class="results-vs">–</span> ${escapeHtml(an)}</td>
+      <td class="results-match"><span class="results-pair"><span class="results-side">${homeLogo}<span class="results-name">${escapeHtml(hn)}</span></span><span class="results-vs">–</span><span class="results-side">${awayLogo}<span class="results-name">${escapeHtml(an)}</span></span></span></td>
       <td class="results-score"><strong>${m.homeScore}</strong> – <strong>${m.awayScore}</strong></td>
     </tr>`;
     })

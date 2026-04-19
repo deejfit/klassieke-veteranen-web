@@ -196,7 +196,7 @@ header {
 }
 .standings-table {
   width: 100%;
-  min-width: 520px;
+  min-width: 460px;
   border-collapse: collapse;
   font-size: 0.875rem;
 }
@@ -220,9 +220,25 @@ header {
 }
 .standings-table .standings-team {
   text-align: left;
+  min-width: 10rem;
+}
+.standings-team-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.standings-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 6px;
+  border: 1px solid rgba(20, 42, 61, 0.08);
+  background: #fff;
+}
+.standings-team-name {
   font-weight: 600;
   color: var(--text);
-  min-width: 8.5rem;
 }
 .standings-table tbody tr:hover {
   background: rgba(30, 64, 88, 0.04);
@@ -261,7 +277,7 @@ header {
 }
 .results-table {
   width: 100%;
-  min-width: 420px;
+  min-width: 480px;
   border-collapse: collapse;
   font-size: 0.875rem;
 }
@@ -290,10 +306,34 @@ header {
   font-weight: 600;
   color: var(--text);
 }
+.results-pair {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+}
+.results-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.results-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: 1px solid rgba(20, 42, 61, 0.08);
+  background: #fff;
+}
+.results-name {
+  font-weight: 600;
+}
 .results-vs {
   font-weight: 400;
   color: var(--text-muted);
   padding: 0 0.15rem;
+  flex-shrink: 0;
 }
 .results-score {
   text-align: center;
